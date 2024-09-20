@@ -1,0 +1,56 @@
+#!/usr/bin/bash
+
+set -e 
+DIR="./data/raw"
+COUNT=-1
+SLEEP_INTERVAL=3
+
+
+mkdir -p $DIR
+
+function print_progressbar(){
+	finished=$1 
+	total=$2 
+
+	if [[ $total -gt 0 ]]; then
+		progress=$(echo $(( $finished * 100 / $total )))
+		text=""
+		for i in $(seq $progress); do 
+			text="$text#"
+		done 
+		for i in $(seq $((100 - $progress))); do 
+			text="$text-"
+
+		done 
+		text="$text($progress%, $finished out of $total)\r"
+	else 
+		text="$finished finished \r"
+	fi
+
+	echo -ne $text 
+}
+
+download_count=0 # it is $ind - already gotten image count
+function get_pic(){
+	ind=$1
+	curl -s 'https://golestan.iust.ac.ir/Forms/AuthenticateUser/captcha.aspx' --output "$DIR/$ind.png"
+	print_progressbar $download_count $COUNT
+	download_count=$(echo $(( $download_count + 1 )))
+	sleep $SLEEP_INTERVAL
+}
+
+last=$(ls $DIR | sort -n | tail -n 1 | cut -d "." -f 1)
+ind=$(echo $(( $last + 1)))
+if [[ $count -gt 0 ]]; then 
+	for i in $(seq $ind $(( $COUNT + $ind ))); do 
+		get_pic $i
+	done 
+else 
+	while [[ true ]]; do 
+		get_pic $ind 
+		ind=$(echo $(( $ind + 1 )))
+	done 
+fi
+
+
+
