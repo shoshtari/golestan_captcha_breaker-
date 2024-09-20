@@ -144,24 +144,38 @@ def chop(img, filename: str, do_write: bool = False, destination_dir: str = "/tm
             part = img[int(y) - HALF_SIZE: int(y) + HALF_SIZE,
                        int(x) - HALF_SIZE: int(x) + HALF_SIZE]
             cv.imwrite(f'{destination_dir}/{filename}-{part_index}.{file_extension}', part)
-            done += 1
         
-        cv.rectangle(img, (int(x) - 13, int(y) - 13),
-                        (int(x) + 13, int(y) + 13), (255, 0, 0), 1)
+        if not do_write:
+            cv.rectangle(img, (int(x) - 13, int(y) - 13),
+                            (int(x) + 13, int(y) + 13), (255, 0, 0), 1)
         
     return img
 
 
-
+def chop_with_path(args):
+    """
+    since I want to run it with multiprocessing.Pool, I had to just get args and expand it myself.
+    """
+    if len(args) != 2:
+        raise ValueError("I need path and destination dir")
+    path, destination_dir = args
+    filename = path.split("/")[-1]
+    chop(get_image(path), filename, do_write=True, destination_dir=destination_dir)
 
 def chop_images(source_dir, imtype, destination_dir):
+    if not os.path.exists(destination_dir):
+        os.makedirs(destination_dir)
+    if not os.path.isdir(destination_dir):
+        raise ValueError("destination directiry exists but it is not a directory")
+    
     images = list(filter(lambda x: x.endswith(f".{imtype}"), os.listdir(source_dir)))
-    image_pathes = [os.path.join(source_dir, i) for i in images]
+    image_paths = [os.path.join(source_dir, i) for i in images]
+    args = [(i, destination_dir) for i in image_paths]
 
-
-    def process(x):
-        chop(get_image(x), x, do_write=True, destination_dir=destination_dir)
 
     pool = multiprocessing.Pool(processes=multiprocessing.cpu_count())
-    for _ in track(pool.imap_unordered(process, image_pathes), total=len(image_pathes)):
+    for _ in track(pool.imap_unordered(chop_with_path, args), total = len(args)):
         pass
+
+if __name__ == "__main__":
+    chop_images("./data/raw", "png", "./data/chopped")
