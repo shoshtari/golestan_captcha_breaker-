@@ -1,0 +1,27 @@
+default_language_version:
+  python: python3.12
+
+repos:
+  - repo: https://github.com/PyCQA/autoflake
+    rev: v2.2.1
+    hooks:
+      - id: autoflake
+
+  - repo: https://github.com/PyCQA/flake8
+    rev: 7.0.0
+    hooks:
+      - id: flake8
+        entry: flake8 --config tox.ini
+        additional_dependencies:
+          [pep8-naming==0.13.3, flake8-variables-names==0.0.6]
+
+  - repo: https://github.com/pycqa/isort
+    rev: 5.13.2
+    hooks:
+      - id: isort
+        args: ["--profile", "black"]
+
+  - repo: https://github.com/psf/black
+    rev: 23.12.1
+    hooks:
+      - id: black
