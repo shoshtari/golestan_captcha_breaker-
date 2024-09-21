@@ -1,7 +1,6 @@
 import os
 
 import tensorflow as tf
-import tensorflow.keras
 import tensorflow_datasets as tfds
 
 # from tensorflow.keras.optimizers import Adam
@@ -19,6 +18,8 @@ BATCH_SIZE = 64
 
 
 def normalize_image(image, label):
+    image = tf.image.rot90(image, k=3)
+    image = tf.image.flip_left_right(image)
     return tf.cast(image, tf.float32) / 255.0, label
 
 
@@ -56,7 +57,7 @@ model = tf.keras.models.Sequential(
         tf.keras.layers.LeakyReLU(alpha=0.1),
         tf.keras.layers.Dense(92),
         tf.keras.layers.LeakyReLU(alpha=0.1),
-        tf.keras.layers.Dense(64, activation="softmax"),
+        tf.keras.layers.Dense(62, activation="softmax"),
     ]
 )
 lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
