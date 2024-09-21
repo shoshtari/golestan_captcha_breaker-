@@ -68,7 +68,7 @@ if os.path.exists(TARGET_FILE):
     with open(TARGET_FILE, "rt") as f:
         labeled = json.loads(f.read())
 
-for i in track(image_paths):
+for i in track(image_paths, total=len(image_paths)):
     if i in labeled:
         continue
     category = process(os.path.join(IMAGE_DIRS, i))
@@ -77,3 +77,4 @@ for i in track(image_paths):
         break
     labeled[i] = category
     save_file(labeled, TARGET_FILE)
+    print(f"Total: {len(image_paths)}, Done: {len(labeled)}")
