@@ -1,6 +1,10 @@
+import os
+
 import tensorflow as tf
+import tensorflow.keras
 import tensorflow_datasets as tfds
-from tensorflow.keras.optimizers import Adam
+
+# from tensorflow.keras.optimizers import Adam
 
 tf.get_logger().setLevel("ERROR")
 
@@ -34,26 +38,50 @@ ds_test = improve_ds(ds_test)
 model = tf.keras.models.Sequential(
     [
         tf.keras.Input(shape=(28, 28, 1)),
-        tf.keras.layers.Conv2D(16, 3, activation="relu"),
+        tf.keras.layers.Conv2D(16, 5),
         tf.keras.layers.BatchNormalization(),
-        tf.keras.layers.Conv2D(32, 3, strides=2, activation="relu"),
+        tf.keras.layers.LeakyReLU(alpha=0.1),
+        tf.keras.layers.Conv2D(32, 3),
         tf.keras.layers.BatchNormalization(),
-        tf.keras.layers.Conv2D(64, 3, strides=2, activation="relu"),
+        tf.keras.layers.LeakyReLU(alpha=0.1),
+        tf.keras.layers.Conv2D(64, 3, strides=2),
         tf.keras.layers.BatchNormalization(),
-        tf.keras.layers.Conv2D(128, 3, activation="relu"),
+        tf.keras.layers.LeakyReLU(alpha=0.1),
+        tf.keras.layers.Conv2D(128, 3, strides=2),
         tf.keras.layers.BatchNormalization(),
-        tf.keras.layers.Conv2D(256, 3, activation="relu"),
-        tf.keras.layers.BatchNormalization(),
-        tf.keras.layers.Flatten(),
-        tf.keras.layers.Dense(512, activation="relu"),
-        tf.keras.layers.Dense(256, activation="relu"),
-        tf.keras.layers.Dense(62, activation="softmax"),
+        tf.keras.layers.LeakyReLU(alpha=0.1),
+        tf.keras.layers.GlobalAveragePooling2D(),
+        tf.keras.layers.Dropout(0.4),
+        tf.keras.layers.Dense(128),
+        tf.keras.layers.LeakyReLU(alpha=0.1),
+        tf.keras.layers.Dense(92),
+        tf.keras.layers.LeakyReLU(alpha=0.1),
+        tf.keras.layers.Dense(64, activation="softmax"),
     ]
 )
+lr_schedule = tf.keras.optimizers.schedules.ExponentialDecay(
+    initial_learning_rate=1e-3, decay_steps=10000, decay_rate=0.9
+)
+optimizer = tf.keras.optimizers.Adam(learning_rate=lr_schedule)
+
 model.compile(
-    optimizer=Adam(learning_rate=0.01, beta_1=0.9, beta_2=0.999, decay=0.01),
+    optimizer=optimizer,
     loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
     metrics=["accuracy"],
 )
-model.fit(ds_train, validation_data=ds_test, epochs=50)
+
+checkpoint_dir = "./checkpoints/"
+os.makedirs(checkpoint_dir, exist_ok=True)
+checkpoint_path = os.path.join(checkpoint_dir, "model.weights.h5")
+checkpoint_callback = tf.keras.callbacks.ModelCheckpoint(
+    filepath=checkpoint_path, save_weights_only=True, save_freq="epoch"
+)
+if os.path.exists(checkpoint_path):
+    try:
+        model.load_weights(checkpoint_path)
+    except ValueError:
+        os.remove(checkpoint_path)
+
+
+model.fit(ds_train, validation_data=ds_test, epochs=50, callbacks=[checkpoint_callback])
 model.evaluate(ds_test)
